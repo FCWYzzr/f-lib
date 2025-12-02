@@ -1,0 +1,16 @@
+# IDE-specific files
+.idea/
+
+
+# Version control system files
+.git/
+
+# Build artifacts
+cmake-build-*/
+CMakeFiles/
+
+# IDE-specific files
+.idea/
+
+# Version control system files
+.git/
