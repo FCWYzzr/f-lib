@@ -1,10 +1,9 @@
 cmake_minimum_required(VERSION 4.1)
-project(f CXX)
+project(f-lib CXX)
+include(cmake/f.cmake)
 
-set(CMAKE_CXX_STANDARD 23)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+add_subdirectory(modules/f)
 
-file(GLOB_RECURSE src
-    src/*.ixx)
-
-add_library(f STATIC ${src})
+if (${CMAKE_CXX_PLATFORM_ID} EQUAL WIN32)
+    add_subdirectory(modules/f.win32)
+endif ()
