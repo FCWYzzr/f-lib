@@ -80,20 +80,18 @@ auto window::consume_message() noexcept -> bool {
 }
 auto window::try_consume_message() noexcept -> bool {
     MSG msg;
-    auto has_message = false;
 
     // 只处理本窗口的消息
     while (PeekMessageW(&msg, handle(), 0, 0, PM_REMOVE)) {
         TranslateMessage(&msg);
         DispatchMessageW(&msg);
-        has_message = true;
 
-        if (msg.message == WM_DESTROY) {
+        if (msg.message == WM_QUIT) {
             return false;
         }
     }
 
-    return has_message;
+    return true;
 }
 
 // 添加ex_style方法的实现

@@ -22,21 +22,19 @@ public:
     }
 
     explicit
-    process(std::wstring_view cmd):
-        process{L"", std::move(cmd)}
-    {}
-    process(const std::wstring_view app, const std::wstring_view arg){
+    process(std::wstring_view cmd, std::wstring_view title){
         auto si = STARTUPINFOW{
-            .cb = sizeof(STARTUPINFOW)
+            .cb = sizeof(STARTUPINFOW),
+            .lpTitle = const_cast<wchar_t*>(title.data())
         };
 
         if (!CreateProcessW(
-                app.empty() ? nullptr : app.data(),
-                const_cast<wchar_t*>(arg.data()),
+                nullptr,
+                const_cast<wchar_t*>(cmd.data()),
                 nullptr,
                 nullptr,
                 FALSE,
-                0,
+                CREATE_NO_WINDOW,
                 nullptr,
                 nullptr,
                 &si,
