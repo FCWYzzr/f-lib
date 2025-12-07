@@ -144,6 +144,11 @@ cmake ..
 - **局部变量声明**：局部变量优先采用以下两种声明方式：对于默认初始化对象，使用`auto x = T{}`；对于引用初始化，使用`auto&& x = foo()`。
 
 - **auto强制使用**：局部变量的定义必须使用auto关键字推导类型，减少类型冗余的同时，使代码更简洁灵活，尤其适用于复杂模板类型场景。
+- **函数签名**：函数签名必须使用后值类型风格，除非不返回，例如：
+```c++
+void foo();
+auto bar() -> int;
+```
 
 # 七、注释规范
 
@@ -165,39 +170,39 @@ cmake ..
 
 - **class与struct选择**：若类型的大部分字段需要对外可读写（数据载体类），优先使用struct；若类型的大部分字段需隐藏（通过成员函数对外提供访问接口），则使用class，明确类型的封装意图。
 
-- **类成员声明顺序**：类内部成员需严格按照以下顺序声明，确保结构清晰：
-`class my_class{
-    // 1. 友元声明
-    friend class clazz1;
-` `    friend auto foo1() noexcept -> void;`
+  - **类成员声明顺序**：类内部成员需严格按照以下顺序声明，确保结构清晰：
+  `class my_class{
+      // 1. 友元声明
+      friend class clazz1;
+  ` `    friend auto foo1() noexcept -> void;`
 
-    `
-    public:
-        // 2. 公有成员函数（按重要程度排序）
-        auto foo() noexcept -> void;
-        auto bar() noexcept -> int&;
-        auto operator [](auto&& self, auto i) noexcept -> int&;
+      `
+      public:
+          // 2. 公有成员函数（按重要程度排序）
+          void foo() noexcept;
+          auto bar() noexcept -> int&;
+          auto operator [](auto&& self, auto i) noexcept -> int&;
     
-        // 3. 构造函数、析构函数（按默认->拷贝->移动->带参顺序）
-        my_class() noexcept = default;
-        my_class(const my_class&) noexcept = default;
-        my_class(my_class&&) noexcept = default;
-        explicit my_class(int) noexcept;
-        ~my_class() noexcept = default;
+          // 3. 构造函数、析构函数（按默认->拷贝->移动->带参顺序）
+          my_class() noexcept = default;
+          my_class(const my_class&) noexcept = default;
+          my_class(my_class&&) noexcept = default;
+          explicit my_class(int) noexcept;
+          ~my_class() noexcept = default;
     
-    protected:
-        // 4. 保护成员函数与变量
-        auto foo2() noexcept -> void;
-        auto bar2() noexcept -> void;
+      protected:
+          // 4. 保护成员函数与变量
+          void foo2() noexcept;
+          auto bar2() noexcept -> int;
     
-        int
-            member1;
+          int
+              member1;
     
-    private:
-        // 5. 私有成员变量
-        f::string
-            _member2;
-    ` `};`
+      private:
+          // 5. 私有成员变量
+          f::string
+              _member2;
+      ` `};`
 
 - **成员排版规则**：struct的成员名称需在类型声明的下一行，且与类型左对齐；class的成员名称需在类型声明的下一行，并缩进4个空格，保持代码排版整齐。
 
