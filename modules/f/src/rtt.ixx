@@ -33,25 +33,48 @@ class type_t {
     using mover_t               = auto (std::byte*, std::byte*) -> void;
 
 public:
+    auto size() const noexcept -> std::size_t {
+        return _size;
+    }
+    auto align() const noexcept -> std::size_t {
+        return _align;
+    }
+
     void make(std::byte* obj) const {
         if (!_default_constructor)
             throw method_not_implemented{"Default Constructor"};
         _default_constructor(obj);
+    }
+    auto try_make(std::byte* obj) const -> bool {
+        if (!_default_constructor)
+            return false;
+        _default_constructor(obj);
+        return true;
     }
     void make(std::byte* obj, const std::byte* prototype) const {
         if (!_copy_constructor)
             throw method_not_implemented{"Copy Constructor"};
         _copy_constructor(obj, prototype);
     }
-    void make(std::byte* obj, std::byte* expired) const noexcept {
+    auto try_make(std::byte* obj, const std::byte* prototype) const -> bool {
+        if (!_copy_constructor)
+            return false;
+        _copy_constructor(obj, prototype);
+        return true;
+    }
+    void make(std::byte* obj, std::byte* expired) const {
         if (!_move_constructor)
             throw method_not_implemented{"Move Constructor"};
         _move_constructor(obj, expired);
     }
+    auto try_make(std::byte* obj, std::byte* expired) const -> bool {
+        if (!_move_constructor)
+            return false;
+        _move_constructor(obj, expired);
+        return true;
+    }
 
     void destroy(std::byte* obj) const {
-        if (!_destructor)
-            throw method_not_implemented{"Destructor"};
         _destructor(obj);
     }
 
@@ -60,14 +83,32 @@ public:
             throw method_not_implemented{"Copy Assignment"};
         _copier(obj, prototype);
     }
-    void move(std::byte* obj, std::byte* expired) const noexcept {
+    auto try_copy(std::byte* obj, const std::byte* prototype) const -> bool {
+        if (!_copier)
+            return false;
+        _copier(obj, prototype);
+        return true;
+    }
+    void move(std::byte* obj, std::byte* expired) const {
         if (!_mover)
             throw method_not_implemented{"Move Assignment"};
         _mover(obj, expired);
     }
+    auto try_move(std::byte* obj, std::byte* expired) const -> bool {
+        if (!_mover)
+            return false;
+        _mover(obj, expired);
+        return true;
+    }
 
     auto operator == (const type_t& other) const noexcept {
         return _info == other._info;
+    }
+    auto operator == (const std::type_index& other) const noexcept {
+        return _info == other;
+    }
+    auto operator == (const std::type_info& other) const noexcept {
+        return _info == other;
     }
 
 
@@ -84,6 +125,8 @@ public:
     explicit
     type_t(std::in_place_type_t<T>):
             _info{typeid(T)},
+            _size{sizeof(T)},
+            _align{alignof(T)},
             _destructor{[](auto&& ptr){ ptr -> ~T(); }}{
         if constexpr (std::is_default_constructible_v<T>)
             _default_constructor = [](auto&& ptr) {
@@ -109,9 +152,22 @@ public:
             };
     }
 
+    type_t& operator = (const type_t&) =default;
+    type_t& operator = (type_t&&) noexcept =default;
+
+
+    explicit
+    operator std::type_index () const noexcept {
+        return _info;
+    }
+
 private:
     std::type_index
         _info;
+    std::size_t
+        _size;
+    std::size_t
+        _align;
     destructor_t*
         _destructor;
 
@@ -165,3 +221,12 @@ auto as(T* obj) noexcept {
 
 
 }
+
+export template<>
+struct std::hash<f::type_t> {
+    using is_transparent = void;
+    auto operator () (const auto& obj) noexcept {
+        return std::hash<std::type_index>{}(
+            static_cast<std::type_index>(obj));
+    }
+};

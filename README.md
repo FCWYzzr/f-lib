@@ -21,7 +21,8 @@ F-Lib是一个Module-Only的STL拓展 & 别名库
   - **make_unique** / **unique_upcast**: 提供了与`std::pmr`兼容的`make_unique`函数和多态上转型的`unique_ptr`转换功能。
 
 - ### rtt (runtime type)
+  - **method_not_implemented**: 当类型不支持请求的方法时抛出的异常。
+  - **type_t**: 存储类型在运行时的常见行为（默认构造、复制构造、移动构造、析构、复制赋值、移动赋值）。可以转换成std::type_index，支持透明哈希。
   - **is_instance**: 检查对象是否是指定类型。
   - **as**: 将对象转换为指定类型，*保留const和指针修饰*。
-  - **type_of**: 获取type_index。
 

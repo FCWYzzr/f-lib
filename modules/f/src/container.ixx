@@ -41,14 +41,12 @@ private:
 };
 
 class any {
-    using maker_fun = void(std::byte*);
-    using collector_fun = void(std::byte*);
-    using copy_fun = void(std::byte*, const std::byte*);
-    using move_fun = void(std::byte*, std::byte*);
 public:
     template<typename T, typename U>
     auto&& as(this U&& self)  {
-        if (_idx != type_index{typeid(T)})
+        if (self._type == type_t::of<void>()) 
+            throw std::bad_any_cast{};
+        if (self._type != type_t::of<T>())
             throw std::bad_any_cast{};
 
         if constexpr (std::is_const_v<std::remove_reference_t<U>>)
@@ -60,92 +58,64 @@ public:
     template<typename T, typename ...Args>
     T& emplace(Args&& ... args) {
         clear();
-        _buffer.resize(sizeof(T));
+        _type = type_t::of<T>();
+        _buffer.resize(_type.size());
         const auto p = new (_buffer.data()) T {std::forward<Args>(args)...};
-
-        if constexpr (std::constructible_from<T>)
-            _maker = [](std::byte* ptr) {
-                new (ptr) T {};
-            };
-        _collector = [](std::byte* ptr) {
-            ptr->~T();
-        };
-        if constexpr (std::copy_constructible<T>)
-            _copier = [](std::byte* dst, const std::byte* src) {
-                new (dst) T { reinterpret_cast<const T&>(*src)};
-            };
-        if constexpr (std::move_constructible<T>)
-            _mover = [](std::byte* dst, std::byte* src) {
-                new (dst) T { std::move(reinterpret_cast<T&>(*src)) };
-            };
         return *p;
     }
 
     void clear() {
-        // ReSharper disable CppDFAConstantConditions
-        // ReSharper disable CppDFAUnreachableCode
-        if (_collector) {
-            _collector(_buffer.data());
-            _buffer.clear();
-            _collector = nullptr;
+        _type.destroy(_buffer.data());
+        _buffer.clear();
+    }
+
+
+    any& operator = (const any& other) {
+        if (_type == other._type)
+            _type.copy(_buffer.data(), other._buffer.data());
+        else {
+            clear();
+            _type = other._type;
+            _buffer.resize(_type.size());
+            _type.make(_buffer.data(), other._buffer.data());
         }
-        _maker = nullptr;
-        _copier = nullptr;
-        _mover = nullptr;
-        _idx = type_index{typeid(void)};
-        // ReSharper restore CppDFAConstantConditions
-        // ReSharper restore CppDFAUnreachableCode
+        return *this;
+    }
+
+    any& operator = (any&& other) noexcept {
+        _type.destroy(_buffer.data());
+        _type = std::move(other._type);
+        _buffer = std::move(other._buffer);
+        return *this;
     }
 
 
     template<typename T, typename ...Args>
     explicit
     any(std::in_place_type_t<T>, Args&& ... args):
-        _idx{typeid(T)}{
+        _type{type_t::of<T>()}{
         emplace<T>(std::forward<Args>(args)...);
     }
-
-    any() noexcept: _idx{typeid(void)} {}
-    // ReSharper disable once CppSpecialFunctionWithoutNoexceptSpecification
-    any(any&& other): // NOLINT(*-noexcept-move-constructor)
-        _buffer{other._buffer.size()},
-        _idx{other._idx},
-        _collector{other._collector},
-        _copier{other._copier},
-        _mover{other._mover}{
-        if (!other._mover)
-            throw exception("type not movable! (holds {})", _idx.name());
-        _mover(_buffer.data(), other._buffer.data());
-    }
+    any() = delete;
+    any(any&& other) noexcept:
+        _buffer{std::move(other._buffer)},
+        _type{std::move(other._type)}{}
     any(const any& other) :
         _buffer{other._buffer.size()},
-        _idx{other._idx},
-        _collector{other._collector},
-        _copier{other._copier},
-        _mover{other._mover}{
-        if (!other._copier)
-            throw exception("type not copyable! (holds {})", _idx.name());
-        _copier(_buffer.data(), other._buffer.data());
+        _type{other._type}{
+        _type.make(_buffer.data(), other._buffer.data());
     }
-
     ~any() {
         clear();
     }
 
 
+
 private:
     vector<std::byte>
         _buffer{};
-    std::type_index
-        _idx;
-    maker_fun*
-        _maker{};
-    collector_fun*
-        _collector{};
-    copy_fun*
-        _copier{};
-    move_fun*
-        _mover{};
+    type_t
+        _type;
 };
 
 template<typename T>
