@@ -28,11 +28,13 @@ struct com_init_error: std::runtime_error {
     {}
 };
 
-struct com_context {
+class com_context {
+public:
     [[deprecated("新应用程序应当调用CoInitializeEx(带参数构造com_context)")]]
     com_context() {
         if (const auto ret = CoInitialize(nullptr); ret != S_OK)
             throw com_init_error{static_cast<com_init_error::fail_reason>(ret)};
+        _enable = true;
     }
 
     template<typename ...Ts>
@@ -41,13 +43,22 @@ struct com_context {
     com_context(Ts... vs) {
         if (const auto ret = CoInitializeEx(nullptr, (vs |...)); ret != S_OK)
             throw com_init_error{static_cast<com_init_error::fail_reason>(ret)};
+        _enable = true;
     }
     ~com_context() noexcept {
-        CoUninitialize();
+        if (_enable)
+            CoUninitialize();
     }
 
-    com_context(com_context&&)=delete;
+    com_context(com_context&& expired) noexcept{
+        std::swap(_enable, expired._enable);
+    }
     com_context(const com_context&)=delete;
+
+
+private:
+    bool
+        _enable;
 };
 
 template<typename T>

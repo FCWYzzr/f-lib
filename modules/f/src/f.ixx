@@ -8,6 +8,7 @@ export import std;
 export import :memory;
 export import :rtt;
 export import :exception;
+export import :utilities;
 export import :container;
 
 export namespace f {

@@ -15,19 +15,26 @@ public:
     auto show() noexcept -> void;
     auto hide() noexcept -> void;
     auto destroy() noexcept -> void;
+    auto size() noexcept -> std::pair<std::uint32_t, std::uint32_t> ;
 
     template<typename Fn>
+    requires requires(Fn fn, window* wnd, WPARAM wp, LPARAM lp) {
+        {fn(wnd, wp, lp)} -> std::same_as<HRESULT>;
+    }
     void on(const UINT event, Fn&& fn) {
         _handlers[event] = std::forward<Fn>(fn);
     }
     
+    [[nodiscard]]
     auto handle() const noexcept -> HWND;
+    [[nodiscard]]
     auto title() const noexcept -> string;
     auto title(std::string_view new_title) noexcept -> string;
     
     auto consume_message() noexcept -> bool;
     auto try_consume_message() noexcept -> bool;
 
+    [[nodiscard]]
     auto ex_style() const noexcept -> DWORD;
     auto ex_style(DWORD new_style) noexcept -> DWORD;
 

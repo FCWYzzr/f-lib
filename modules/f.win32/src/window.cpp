@@ -27,6 +27,12 @@ auto window::destroy() noexcept -> void {
     }
 }
 
+auto window::size() noexcept -> std::pair<std::uint32_t, std::uint32_t> {
+    auto rect = RECT{};
+    GetClientRect(handle(), &rect);
+    return {rect.right - rect.left, rect.bottom - rect.top};
+}
+
 auto window::handle() const noexcept -> HWND {
     return _handle;
 }
